@@ -32,16 +32,21 @@ import utils; importlib.reload(utils)
 path = 'V:/Data/FastAI/dogscats/sample/'
 model_path = path + 'models/'
 buildFeature = False
-batch_size = 4
+batch_size = 8
 # Load VGG model with weights
 vgg = Vgg16()
 model = vgg.model
 # get layers of VGG
 layers = model.layers
-# get last convolution model index
-last_conv_idx = [index for index, layer in enumerate(layers) if type(layer) is Convolution2D][-1]
-# Get convolution layers and make them into a model
-conv_layers = layers[:last_conv_idx+1]
+## get last convolution model index
+#last_conv_idx = [index for index, layer in enumerate(layers) if type(layer) is Convolution2D][-1]
+## Get convolution layers and make them into a model
+#conv_layers = layers[:last_conv_idx+1]
+# Get first dense layer
+first_dense_idx = [index for index, layer in enumerate(layers) if type(layer) is Dense][0]
+# Get convolution layers till first Dense layers
+conv_layers = layers[:first_dense_idx+1]
+# Build conv model
 conv_model = Sequential(conv_layers)
 # Build or load features
 if buildFeature:
@@ -72,20 +77,22 @@ else:
     trn_labels = utils.load_array(model_path + 'train_convlayer_labels.bc')
     val_labels = utils.load_array(model_path + 'valid_convlayer_labels.bc')
 # Get fully-connected layers
-fc_layers = layers[last_conv_idx+1:]
+#fc_layers = layers[last_conv_idx+1:]
+fc_layers = layers[first_dense_idx+1:]
 # Build FC layers without drop out
 fc_model = Sequential([                                              \
-        MaxPooling2D(input_shape=conv_layers[-1].output_shape[1:]), \
-        Flatten(),                                                  \
-        Dense(4096, activation='relu'),                             \
-        Dropout(0.0),                                               \
+#        MaxPooling2D(input_shape=conv_layers[-1].output_shape[1:]), \
+#        Flatten(),                                                  \
+#        Dense(4096, activation='relu'),                             \
+        Dropout(0.0, input_shape=conv_layers[-1].output_shape[1:]), \
         Dense(4096, activation='relu'),                             \
         Dropout(0.0),                                               \
         Dense(2, activation='softmax')                              \
         ])
 # Scale initial weights from VGG16 model by 0.5, because we remove dropout
 for layer1, layer2 in zip(fc_model.layers, fc_layers):
-    if type(layer1) is Dense and layer1.output_shape[1] != 2:  
+    #if type(layer1) is Dense and layer1.output_shape[1] != 2:  
+    if layer1.output_shape[1] != 2:
         layer1.set_weights(utils.prorate_weight(layer2, 0.5))
 # Compile model
 fc_model.compile(optimizer=RMSprop(lr=0.00001, rho=0.7), loss='categorical_crossentropy', \
