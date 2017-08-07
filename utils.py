@@ -83,6 +83,11 @@ def load_array(fname):
 ### Get image batches
 def get_batches(dirname, gen=image.ImageDataGenerator(), shuffle=True, batch_size=4,
                 class_mode='categorical', target_size=(224,224)):
+    """
+    get_batches(dirname, gen=image.ImageDataGenerator(), shuffle=True, batch_size=4,
+                class_mode='categorical', target_size=(224,224))
+    Get image batches using ImageDataGenerator
+    """
     return gen.flow_from_directory(dirname, target_size=target_size, class_mode=class_mode,
                                    shuffle=shuffle, batch_size=batch_size)
     
